@@ -64,6 +64,26 @@ class SQLiteConnector(BaseSQLiteConnector):
 
         return new_table_name
 
+    def create_table_2(self, table_name):
+        new_table_name = self.find_valid_table_name(table_name)
+
+        create_table_query = f'''
+            CREATE TABLE {new_table_name} (
+                id INTEGER PRIMARY KEY,
+                algorytm TEXT,
+                funkcja TEXT,
+                metoda TEXT,
+                wymiar INTEGER,
+                precyzja TEXT,
+                f_evals INTEGER
+            )
+        '''
+
+        self.execute_query(create_table_query)
+        self.commit()
+
+        return new_table_name
+
     def find_valid_table_name(self, table_name):
         query = "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ?"
         self.execute_query(query, (table_name + '%',))
@@ -87,6 +107,15 @@ class SQLiteConnector(BaseSQLiteConnector):
         '''
 
         self.executemany_query(insert_query, params)
+        self.commit()
+
+    def insert_data(self, table_name, params):
+        insert_query = f'''
+        INSERT INTO {table_name} (algorytm, funkcja, metoda, wymiar, precyzja, f_evals)
+                       VALUES (?, ?, ?, ?, ?, ?)
+        '''
+
+        self.execute_query(insert_query, params)
         self.commit()
 
     def get_results(self, table_name):

@@ -81,6 +81,14 @@ class FitnessFunctionWrapper(FitnessFunctionBase):
         """
         return self._evaluation_count
 
+    def get_evaluation_count(self) -> int:
+        """
+        Get the number of times the fitness function has been evaluated.
+
+        :return: The evaluation count.
+        """
+        return self._evaluation_count
+
     def reset_evaluation_count(self) -> None:
         """
         Reset the evaluation count to zero.

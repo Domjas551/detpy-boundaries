@@ -12,6 +12,13 @@ def get_table_name(func_name, alg_name, nr_of_args, pop_size):
 
     return table_name
 
+def get_table_name2(alg_name, fun_name, method_name, dim):
+    table_name = f"{alg_name}_{fun_name}_" \
+                 f"{method_name}_dim{dim}_" \
+                 f"results"
+
+    return table_name
+
 
 def format_individuals(individuals: typing.List[Metric]):
     formatted_individuals = []

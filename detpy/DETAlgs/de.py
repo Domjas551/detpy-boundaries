@@ -36,8 +36,9 @@ class DE(BaseAlg):
                          f=self.mutation_factor)
 
         # Apply boundary constrains on population in place
-        #TODO corrected code boundary with parent
-        if self.boundary_constraints_fun not in (BoundaryFixing.PROJECTION_DARWINIAN, BoundaryFixing.REFLECTION_DARWINIAN,
+        #TODO corrected code boundary full
+        if self.boundary_constraints_fun not in (BoundaryFixing.PROJECTION_DARWINIAN,
+                                                 BoundaryFixing.REFLECTION_DARWINIAN,
                                                  BoundaryFixing.WRAPPING_DARWINIAN):
             fix_boundary_constraints_full(self._pop, v_pop, self._function.eval, self.base_vector_schema,
                                           self.optimization_type, self.y, self.mutation_factor,
@@ -50,7 +51,8 @@ class DE(BaseAlg):
         u_pop.update_fitness_values(self._function.eval, self.parallel_processing)
 
         #Methods with Darwinian repair should be used before selection
-        if self.boundary_constraints_fun in (BoundaryFixing.PROJECTION_DARWINIAN, BoundaryFixing.REFLECTION_DARWINIAN,
+        if self.boundary_constraints_fun in (BoundaryFixing.PROJECTION_DARWINIAN,
+                                             BoundaryFixing.REFLECTION_DARWINIAN,
                                              BoundaryFixing.WRAPPING_DARWINIAN):
             fix_boundary_constraints_full(self._pop, v_pop, self._function.eval, self.base_vector_schema,
                                           self.optimization_type, self.y, self.mutation_factor,

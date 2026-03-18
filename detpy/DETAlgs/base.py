@@ -10,7 +10,7 @@ import numpy as np
 
 from detpy.database.database_connector import SQLiteConnector
 from detpy.DETAlgs.data.alg_data import BaseData
-from detpy.helpers.database_helper import get_table_name, format_individuals
+from detpy.helpers.database_helper import get_table_name2, format_individuals
 from detpy.helpers.metric_helper import MetricHelper
 from detpy.models.algorithm_result import AlgorithmResult
 from detpy.models.fitness_function import FitnessFunctionWrapper, FitnessFunction
@@ -82,6 +82,7 @@ class BaseAlg(ABC):
             optimization=self.optimization_type
         )
         population.generate_population()
+
         population.update_fitness_values(self._function.eval, self.parallel_processing)
         end_init_time = time.time()
 
@@ -90,13 +91,14 @@ class BaseAlg(ABC):
 
         # Creating table
         self._database.connect()
-        table_name = get_table_name(
-            func_name="aa",
+        table_name = get_table_name2(
             alg_name=self.name,
-            nr_of_args=self.nr_of_args,
-            pop_size=self.population_size
+            fun_name=self._function.get_name(),
+            method_name=self.boundary_constraints_fun.name,
+            dim=self.nr_of_args
         )
         self.database_table_name = self._database.create_table(table_name)
+
         self._database.close()
         self._total_init_time = end_init_time - init_time
 

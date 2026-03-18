@@ -26,8 +26,10 @@ class Population:
 
     def calculate_member(self, index, fitness_fun):
         member = self.members[index]
-        print(self.calculate_fitness(member, fitness_fun))
-        member.fitness_value = self.calculate_fitness(member, fitness_fun)
+        value = self.calculate_fitness(member, fitness_fun)
+        #TODO commented print
+        #print(value)
+        member.fitness_value = value
 
     def update_fitness_values(self, fitness_fun, parallel_processing=None):
         if parallel_processing is None:

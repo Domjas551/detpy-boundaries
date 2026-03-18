@@ -17,7 +17,7 @@ class BoundaryFixing(Enum):
     REFLECTION_DARWINIAN = 'reflection_darwinian'
     WRAPPING_LAMARCKIAN = 'wrapping_lamarckian'
     WRAPPING_DARWINIAN = 'wrapping_darwinian'
-    REFLECTION_MIDPOINT = 'reflection_midpoint'
+    PROJECTION_MIDPOINT = 'reflection_midpoint'
     PENALTY_DEATH = 'penalty_death'
     PENALTY_ADDITIVE = 'penalty_additive'
     PENALTY_SUBSTITUTION = 'penalty_substitution'
@@ -39,7 +39,7 @@ def get_boundary_constraints_fun(fix_type: BoundaryFixing):
         BoundaryFixing.REFLECTION_DARWINIAN: lambda member, fitness_fun: boundary_reflection(member, fitness_fun, 2),
         BoundaryFixing.WRAPPING_LAMARCKIAN: lambda member, fitness_fun: boundary_wrapping(member, fitness_fun, 1),
         BoundaryFixing.WRAPPING_DARWINIAN: lambda member, fitness_fun: boundary_wrapping(member, fitness_fun, 2),
-        BoundaryFixing.REFLECTION_MIDPOINT: lambda member: boundary_projection_to_midpoint(member),
+        BoundaryFixing.PROJECTION_MIDPOINT: lambda member: boundary_projection_to_midpoint(member),
         BoundaryFixing.PENALTY_DEATH: lambda member: boundary_penalty_death(member),
         BoundaryFixing.PENALTY_ADDITIVE: lambda member, fitness_fun: boundary_penalty_additive(member, fitness_fun),
         BoundaryFixing.PENALTY_SUBSTITUTION: lambda member: boundary_penalty_substitution(member),

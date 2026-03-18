@@ -2,7 +2,7 @@ from detpy.DETAlgs.base import BaseAlg
 from detpy.DETAlgs.data.alg_data import IDEData
 from detpy.DETAlgs.methods.methods_de import selection, mutation
 from detpy.DETAlgs.methods.methods_ide import ide_get_f, ide_get_cr, ide_binomial_crossing
-from detpy.models.enums.boundary_constrain import fix_boundary_constraints
+from detpy.models.enums.boundary_constrain import fix_boundary_constraints_full, BoundaryFixing
 
 
 class IDE(BaseAlg):
@@ -33,13 +33,27 @@ class IDE(BaseAlg):
                          optimization_type=self.optimization_type,y = self.y, f=f)
 
         # Apply boundary constrains on population in place
-        fix_boundary_constraints(v_pop, self.boundary_constraints_fun)
+        # TODO corrected code boundary full
+        if self.boundary_constraints_fun not in (BoundaryFixing.PROJECTION_DARWINIAN,
+                                                 BoundaryFixing.REFLECTION_DARWINIAN,
+                                                 BoundaryFixing.WRAPPING_DARWINIAN):
+            fix_boundary_constraints_full(self._pop, v_pop, self._function.eval, self.base_vector_schema,
+                                          self.optimization_type, self.y, f,
+                                          self.boundary_constraints_fun)
 
         # New population after crossing
         u_pop = ide_binomial_crossing(self._pop, v_pop, cr_arr)
 
         # Update values before selection
         u_pop.update_fitness_values(self._function.eval, self.parallel_processing)
+
+        # Methods with Darwinian repair should be used before selection
+        if self.boundary_constraints_fun in (BoundaryFixing.PROJECTION_DARWINIAN,
+                                             BoundaryFixing.REFLECTION_DARWINIAN,
+                                             BoundaryFixing.WRAPPING_DARWINIAN):
+            fix_boundary_constraints_full(self._pop, v_pop, self._function.eval, self.base_vector_schema,
+                                          self.optimization_type, self.y, f,
+                                          self.boundary_constraints_fun)
 
         # Select new population
         new_pop = selection(self._pop, u_pop)
