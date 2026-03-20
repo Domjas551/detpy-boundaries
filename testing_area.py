@@ -44,6 +44,16 @@ def cantilever_objective_old(x):
     return f + lambda_pen * penalty
 
 def cantilever_objective(x):
+
+    '''
+
+    optimum
+    10 - 334.26
+    30 - 976
+    50 - 1625
+    100 - 3300
+
+    '''
     #Siła skupiona na końcu belki
     P = 50000
     #Moduł Younga
@@ -65,11 +75,11 @@ def cantilever_objective(x):
 
     # Ograniczenia naprężeń
     i = np.arange(1, n + 1)
-    sigma = P * (n - i + 1) * L / x
+    sigma = 6 * P * (n - i + 1) * L / (x ** 2)
     stress_violation = np.maximum(0.0, sigma - sigma_max)
 
     # Ograniczenie ugięcia
-    delta = (P / E) * np.sum((i * L) ** 3 / x)
+    delta = (4 * P * L**3 / E) * np.sum((n - i + 1)**3 / x)
     delta_violation = max(0.0, delta - delta_max)
 
     penalty = lambda_pen * (
@@ -91,28 +101,143 @@ class MyFitnessFunctionWrapper(FitnessFunctionBase):
     def eval(self, params):
         return self.function(params)
 
-def exe_test():
-    a = [3572, 3215, 2858, 2500, 2143, 1786, 1429, 1072, 715, 358]
-    b = [8000, 7500, 7000, 6500, 6000,
-      5000, 4000, 3000, 2000, 1000]
+def eng_de():
+    # lista wymiarów
+    dim = [10, 30, 50, 100]
+
+    # lista metod
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
     fitness_function = MyFitnessFunctionWrapper("Belka")
 
-    params = DEData(
-        population_size=10,
-        dimension=10,
-        lb=a,
-        ub=b,
-        optimization_type=OptimizationType.MINIMIZATION,
-        boundary_constraints_fun=BoundaryFixing.RAND_BASE,
-        function=fitness_function,
-        mutation_factor=0.5,
-        crossover_rate=0.8,
-        log_population=True
-    )
-    params.parallel_processing = ['thread', 5]
-    default2 = DE(params, db_conn="Differential_evolution.db", db_auto_write=False)
-    results = default2.run()
+    for method, dim in product(methods, dim):
 
+        params = DEData(
+            population_size=100,
+            dimension=dim,
+            lb=[20.0]*dim,
+            ub=[500.0]*dim,
+            optimization_type=OptimizationType.MINIMIZATION,
+            boundary_constraints_fun=getattr(BoundaryFixing, method),
+            function=fitness_function,
+            mutation_factor=0.5,
+            crossover_rate=0.8,
+            log_population=True,
+            max_nfe=10000 * dim,
+            show_plots=False
+        )
+
+        for i in range(0, 10):
+            print('DE', 'Belka', method, dim, i)
+            params.parallel_processing = ['thread', 20]
+            default2 = DE(params, db_conn="Partial_data.db", db_auto_write=False)
+            results = default2.run()
+
+def eng_opp():
+    # lista wymiarów
+    dim = [10, 30, 50, 100]
+
+    # lista metod
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
+    fitness_function = MyFitnessFunctionWrapper("Belka")
+
+    for method, dim in product(methods, dim):
+
+        params = OppBasedData(
+            population_size=100,
+            dimension=dim,
+            lb=[-100] * dim,
+            ub=[100] * dim,
+            optimization_type=OptimizationType.MINIMIZATION,
+            boundary_constraints_fun=getattr(BoundaryFixing, method),
+            function=fitness_function,
+            mutation_factor=0.5,
+            crossover_rate=0.8,
+            log_population=True,
+            max_nfe=10000 * dim,
+            show_plots=False
+        )
+
+        for i in range(0, 10):
+            print('OPP', 'Belka', method, dim, i)
+            params.parallel_processing = ['thread', 20]
+            default2 = OppBasedDE(params, db_conn="Partial_data.db", db_auto_write=False)
+            results = default2.run()
+
+def eng_ide():
+    # lista wymiarów
+    dim = [10, 30, 50, 100]
+
+    # lista metod
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
+    fitness_function = MyFitnessFunctionWrapper("Belka")
+
+    for method, dim in product(methods, dim):
+
+        params = IDEData(
+            population_size=100,
+            dimension=dim,
+            lb=[-100] * dim,
+            ub=[100] * dim,
+            optimization_type=OptimizationType.MINIMIZATION,
+            boundary_constraints_fun=getattr(BoundaryFixing, method),
+            function=fitness_function,
+            log_population=True,
+            max_nfe=10000 * dim,
+            show_plots=False
+        )
+
+        for i in range(0, 10):
+            print('IDE', 'Belka', method, dim, i)
+            params.parallel_processing = ['thread', 20]
+            default2 = IDE(params, db_conn="Partial_data.db", db_auto_write=False)
+            results = default2.run()
+
+def eng_eide():
+    # lista wymiarów
+    dim = [10, 30, 50, 100]
+
+    # lista metod
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
+    fitness_function = MyFitnessFunctionWrapper("Belka")
+
+    for method, dim in product(methods, dim):
+
+        params = EIDEData(
+            population_size=100,
+            dimension=dim,
+            lb=[-100] * dim,
+            ub=[100] * dim,
+            optimization_type=OptimizationType.MINIMIZATION,
+            boundary_constraints_fun=getattr(BoundaryFixing, method),
+            function=fitness_function,
+            crossover_rate_min=0.2,
+            crossover_rate_max=0.8,
+            log_population=True,
+            max_nfe=10000 * dim,
+            show_plots=False
+        )
+
+        for i in range(0, 10):
+            print('EIDE', 'Belka', method, dim, i)
+            params.parallel_processing = ['thread', 20]
+            default2 = EIDE(params, db_conn="Partial_data.db", db_auto_write=False)
+            results = default2.run()
 def test():
     '''
 
@@ -517,7 +642,7 @@ def exe_ide():
             max_nfe=10000*dim,
             show_plots=False
         )
-        print(params.function.name, params.boundary_constraints_fun.name, dim)
+
         for i in range(0,10):
             print('IDE', fun, method, dim, i)
             params.parallel_processing = ['thread', 20]
@@ -583,7 +708,8 @@ if __name__ == "__main__":
     '''
 
     #db_data()
-    plot_exe()
+    #plot_exe()
+
 
 
 
