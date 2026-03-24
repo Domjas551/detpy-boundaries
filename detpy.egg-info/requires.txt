@@ -1,0 +1,5 @@
+numpy
+opfunu
+matplotlib
+tqdm
+scipy
