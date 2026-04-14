@@ -290,7 +290,7 @@ def boundary_penalty_additive(member: Member, fitness_fun):
         member_fixed = copy.deepcopy(member)
         boundary_projection(member_fixed, fitness_fun, 1)
         member_fixed.calculate_fitness_fun(fitness_fun)
-        alfa = 10
+        alfa = 100000
         penalty = 0.0
 
         for chromosome in member.chromosomes:

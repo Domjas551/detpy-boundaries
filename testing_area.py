@@ -150,8 +150,8 @@ def eng_opp(method_id, dim):
     params = OppBasedData(
         population_size=100,
         dimension=dim,
-        lb=[-100] * dim,
-        ub=[100] * dim,
+        lb=[20.0] * dim,
+        ub=[500.0] * dim,
         optimization_type=OptimizationType.MINIMIZATION,
         boundary_constraints_fun=getattr(BoundaryFixing, methods[method_id]),
         function=fitness_function,
@@ -185,8 +185,8 @@ def eng_ide(method_id, dim):
     params = IDEData(
         population_size=100,
         dimension=dim,
-        lb=[-100] * dim,
-        ub=[100] * dim,
+        lb=[20.0] * dim,
+        ub=[500.0] * dim,
         optimization_type=OptimizationType.MINIMIZATION,
         boundary_constraints_fun=getattr(BoundaryFixing, methods[method_id]),
         function=fitness_function,
@@ -218,8 +218,8 @@ def eng_eide(method_id, dim):
     params = EIDEData(
         population_size=100,
         dimension=dim,
-        lb=[-100] * dim,
-        ub=[100] * dim,
+        lb=[20.0] * dim,
+        ub=[500.0] * dim,
         optimization_type=OptimizationType.MINIMIZATION,
         boundary_constraints_fun=getattr(BoundaryFixing, methods[method_id]),
         function=fitness_function,
@@ -364,17 +364,196 @@ def test_de(dim=10):
     default2 = DE(params, db_conn="Partial_data.db", db_auto_write=False)
     results = default2.run()
 
+def compute_ecdf(conn, alg_id, fun_id, method_id, dim, fun_opt):
+    alg = ["DE", "OPP", "IDE", "EIDE"]
+    fun = ["F12014", "F22014", "F32014", "F42014", "F52014", "Belka"]
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
+    queries = [
+        f"SELECT * FROM {alg[alg_id]}_{fun[fun_id]}_{methods[method_id]}_dim{dim}_results_1",
+        f"SELECT * FROM {alg[alg_id]}_{fun[fun_id]}_{methods[method_id]}_dim{dim}_results_2",
+        f"SELECT * FROM {alg[alg_id]}_{fun[fun_id]}_{methods[method_id]}_dim{dim}_results_3"
+    ]
+
+    #15 1
+    #10 7 5
+    #30 50 9 7
+    #100 10 8
+    if fun_id == 0:
+        if dim == 10:
+            targets = 10.0 ** np.arange(7, 5, -1)
+        elif dim == 30 or dim == 50:
+            targets = 10.0 ** np.arange(9, 7, -1)
+        elif dim == 100:
+            targets = 10.0 ** np.arange(10, 8, -1)
+    elif fun_id == 1:
+        if dim == 10:
+            targets = 10.0 ** np.arange(9, 7, -1)
+        elif dim == 30 or dim == 50:
+            targets = 10.0 ** np.arange(10, 8, -1)
+        elif dim == 100:
+            targets = 10.0 ** np.arange(11, 9, -1)
+    elif fun_id == 2:
+        if dim == 10:
+            targets = 10.0 ** np.arange(4, 2, -1)
+        elif dim == 30:
+            targets = 10.0 ** np.arange(5, 3, -1)
+        elif dim == 50:
+            targets = 10.0 ** np.arange(6, 4, -1)
+        elif dim == 100:
+            targets = 10.0 ** np.arange(5.5, 4.5, -1)
+    elif fun_id == 3:
+        if dim == 10:
+            targets = 10.0 ** np.arange(2, 0, -1)
+        elif dim == 30:
+            targets = 10.0 ** np.arange(4, 1, -1)
+        elif dim == 50:
+            targets = 10.0 ** np.arange(4, 2, -1)
+        elif dim == 100:
+            targets = 10.0 ** np.arange(4, 2, -1)
+    elif fun_id == 4:
+        if dim == 10:
+            targets = 21.2 - np.arange(1, 0.1, -0.1)
+        elif dim == 30:
+            targets = 21.7 - np.arange(1, 0.1, -0.1)
+        elif dim == 50:
+            targets = 21.8 - np.arange(1, 0.1, -0.1)
+        elif dim == 100:
+            targets = 21.7 - np.arange(0.5, 0.1, -0.1)
+    elif fun_id == 5:
+        if dim == 10:
+            targets = 10.0 ** np.arange(3, 1, -1)
+        elif dim == 30:
+            targets = 10.0 ** np.arange(4, 2, -1)
+        elif dim == 50:
+            targets = 10.0 ** np.arange(4, 2, -0.5)
+        elif dim == 100:
+            targets = 10.0 ** np.arange(5, 3, -1)
+
+    all_y_targets = []
+
+    for target_value in targets:
+        all_x = []
+
+        for query in queries:
+            df = pd.read_sql_query(query, conn).copy()
+
+            df['fes_per_dim'] = df['epoch'] / dim
+            df['target_reached'] = abs(df['fitnessValueBest'] - fun_opt) <= target_value
+
+            df_sorted = df.sort_values('fes_per_dim')
+
+            x = df_sorted['fes_per_dim'].values
+            y = np.cumsum(df_sorted['target_reached'].values) / len(df_sorted)
+
+            all_x.append((x, y))
+
+        # wspólna siatka X
+        x_common = np.linspace(0, max(max(x) for x, _ in all_x), 500)
+
+        ys_interp = []
+        for x, y in all_x:
+            y_interp = np.interp(x_common, x, y)
+            ys_interp.append(y_interp)
+
+        y_mean = np.mean(ys_interp, axis=0)
+        all_y_targets.append(y_mean)
+
+    # 🔥 średnia po targetach
+    y_final = np.mean(all_y_targets, axis=0)
+
+    # AUC
+    auc = np.trapezoid(y_final, x_common)
+    auc_norm = auc / (x_common[-1] - x_common[0])
+
+    print("AUC dla", methods[method_id], "=", auc_norm)
+
+    return x_common, y_final
+
+def plot_ecdf(alg_id, fun_id, dim, set):
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
+    conn = sqlite3.connect("Partial_data.db")
+
+    if fun_id == 0:
+        fun_optimum = 100
+    elif fun_id == 1:
+        fun_optimum = 200
+    elif fun_id == 2:
+        fun_optimum = 300
+    elif fun_id == 3:
+        fun_optimum = 400
+    elif fun_id == 4:
+        fun_optimum = 500
+    elif fun_id == 5:
+        if dim == 10:
+            fun_optimum = 332.26
+        elif dim == 30:
+            fun_optimum = 1200
+        elif dim == 50:
+            fun_optimum = 2000
+        elif dim == 100:
+            fun_optimum = 3300
+
+    if set == 1:
+        configs = [
+            (0, "blue"),
+            (1, "red"),
+            (2, "green"),
+            (3, "purple"),
+            (4, "orange"),
+        ]
+    elif set == 2:
+        configs = [
+            (5, "blue"),
+            (6, "red"),
+            (7, "green"),
+            (8, "purple"),
+            (9, "orange"),
+        ]
+    elif set == 3:
+        configs = [
+            (10, "blue"),
+            (11, "red"),
+            (12, "green"),
+            (13, "purple"),
+            (14, "orange"),
+        ]
+    elif set == 4:
+        configs = [
+            (15, "blue"),
+            (16, "red"),
+        ]
+
+    for method_id, color in configs:
+        x, y = compute_ecdf(conn, alg_id, fun_id, method_id, dim, fun_optimum)
+        plt.plot(x, y, label=methods[method_id], color=color)
+    conn.close()
+
+    plt.xlabel("FES / dim")
+    plt.ylabel("ECDF")
+    plt.ylim(0.0, 1.0)
+    plt.legend()
+    plt.grid(True)
+
+    plt.show()
 def plot():
     # połączenie z bazą
     conn = sqlite3.connect("Partial_data.db")
     # wczytanie całej tabeli do DataFrame
-    df = pd.read_sql_query("SELECT * FROM DE_F12014_REINITIALIZE_dim10_results_1", conn)
+    df = pd.read_sql_query("SELECT * FROM EIDE_Belka_REINITIALIZE_dim10_results_1", conn)
 
     # zamknięcie połączenia
     conn.close()
 
     dim = 10
-    fun_opt = 100
+    fun_opt = 336.24
     max_fes = df['epoch'].max()
 
     targets = 10.0 ** np.arange(3, -9, -1)
@@ -417,10 +596,19 @@ def plot():
     plt.grid(True)
     plt.show()
 def plot_exe():
+    alg = ["DE", "OPP", "IDE", "EIDE"]
+    fun = ["F12014", "F22014", "F32014", "F42014", "F52014", "Belka"]
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
+    query = f"SELECT * FROM {alg[3]}_{fun[5]}_{methods[0]}_dim10_results_1"
+
     # połączenie z bazą
     conn = sqlite3.connect("Partial_data.db")
     # wczytanie całej tabeli do DataFrame
-    df = pd.read_sql_query("SELECT * FROM DE_F12014_REINITIALIZE_dim10_results_1", conn)
+    df = pd.read_sql_query(query, conn)
 
     # zamknięcie połączenia
     conn.close()
@@ -432,7 +620,7 @@ def plot_exe():
     #Wymiar problemu
     dim = 10
     #Optimum funkcji
-    fun_opt = 100
+    fun_opt = 332.26
 
     # Normalizujemy FES przez wymiar problemu
     df['fes_per_dim'] = df['epoch'] / dim
@@ -480,6 +668,64 @@ def plot_exe():
     y = np.arange(1, len(x)+1) / len(x)
     '''
 
+def all_plot():
+    alg = ["DE", "OPP", "IDE", "EIDE"]
+    fun = ["F12014", "F22014", "F32014", "F42014", "F52014", "Belka"]
+    methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
+               "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
+               "PENALTY_DEATH", "PENALTY_ADDITIVE", "PENALTY_SUBSTITUTION", "RAND_BASE", "MIDPOINT_BASE",
+               "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
+
+    query1 = f"SELECT * FROM {alg[3]}_{fun[5]}_{methods[0]}_dim10_results_1"
+    query2 = f"SELECT * FROM {alg[3]}_{fun[5]}_{methods[0]}_dim10_results_2"
+    query3 = f"SELECT * FROM {alg[3]}_{fun[5]}_{methods[0]}_dim10_results_3"
+
+    # połączenie z bazą
+    conn = sqlite3.connect("Partial_data.db")
+    # wczytanie całej tabeli do DataFrame
+    df1 = pd.read_sql_query(query1, conn)
+    df2 = pd.read_sql_query(query2, conn)
+    df3 = pd.read_sql_query(query3, conn)
+
+    # zamknięcie połączenia
+    conn.close()
+
+    #print(df.head())
+
+    # Ustal target fitness, np.
+    target_value = 1e+2
+    # Wymiar problemu
+    dim = 10
+    # Optimum funkcji
+    fun_opt = 332.26
+
+    all_x = []
+
+    for df in [df1, df2, df3]:
+        df = df.copy()
+        df['fes_per_dim'] = df['epoch'] / dim
+        df['target_reached'] = abs(df['fitnessValueBest'] - fun_opt) <= target_value
+
+        df_sorted = df.sort_values('fes_per_dim')
+
+        x = df_sorted['fes_per_dim'].values
+        y = np.cumsum(df_sorted['target_reached'].values) / len(df_sorted)
+
+        all_x.append((x, y))
+
+    # wspólna siatka X
+    x_common = np.linspace(0, max(max(x) for x, _ in all_x), 500)
+
+    ys_interp = []
+    for x, y in all_x:
+        y_interp = np.interp(x_common, x, y)
+        ys_interp.append(y_interp)
+
+    y_mean = np.mean(ys_interp, axis=0)
+
+    plt.plot(x_common, y_mean, label="Mean ECDF", linewidth=2)
+    plt.legend()
+    plt.show()
 def plot_2():
     # połączenie z bazą
     conn = sqlite3.connect("Partial_data.db")
@@ -595,7 +841,7 @@ def exe_opp(fun_id, method_id, dim):
         lb=[-100]*dim,
         ub=[100]*dim,
         optimization_type=OptimizationType.MINIMIZATION,
-        boundary_constraints_fun=getattr(BoundaryFixing,methods[method_id]),
+        boundary_constraints_fun=getattr(BoundaryFixing, methods[method_id]),
         function=fitness_fun_opf,
         mutation_factor=0.5,
         crossover_rate=0.8,
@@ -627,7 +873,7 @@ def exe_ide(fun_id, method_id, dim):
                "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
 
     fitness_fun_opf = FitnessFunctionOpfunu(
-        func_type=getattr(opf, fun_id),
+        func_type=getattr(opf, fun[fun_id]),
         ndim=dim
     )
 
@@ -637,7 +883,7 @@ def exe_ide(fun_id, method_id, dim):
         lb=[-100]*dim,
         ub=[100]*dim,
         optimization_type=OptimizationType.MINIMIZATION,
-        boundary_constraints_fun=getattr(BoundaryFixing,methods[method_id]),
+        boundary_constraints_fun=getattr(BoundaryFixing, methods[method_id]),
         function=fitness_fun_opf,
         log_population=True,
         max_nfe=5000 * dim,
@@ -667,7 +913,7 @@ def exe_eide(fun_id, method_id, dim):
                "MIDPOINT_TARGET", "RESAMPLING", "CONSERVATIVE", "PROJECTION_BASE"]
 
     fitness_fun_opf = FitnessFunctionOpfunu(
-        func_type=getattr(opf,fun_id),
+        func_type=getattr(opf, fun[fun_id]),
         ndim=dim
     )
 
@@ -677,7 +923,7 @@ def exe_eide(fun_id, method_id, dim):
         lb=[-100]*dim,
         ub=[100]*dim,
         optimization_type=OptimizationType.MINIMIZATION,
-        boundary_constraints_fun=getattr(BoundaryFixing,methods[method_id]),
+        boundary_constraints_fun=getattr(BoundaryFixing, methods[method_id]),
         function=fitness_fun_opf,
         crossover_rate_min=0.2,
         crossover_rate_max=0.8,
@@ -712,16 +958,34 @@ if __name__ == "__main__":
     #method_id = int(sys.argv[1])
     fun_id = 4
 
-    #exe_de(fun_id, 7, 30)
-    eng_de(16, 30)
+    #plot_exe()
+
+    '''
+    0 - DE, 1 - OPP, 2 - IDE, 3 - EIDE
+    Belka: 10 - 332.26, 30 - 976, 50 - 1625, 100 - 3300
+            1e2         1200 1e3  2000 2e3   1e4
+    AUC: 
+    '''
+
+    plot_ecdf(3, 5, 50, 3)
+    #plot_ecdf(3, 5, 10, 1)
+
+    #exe_eide(fun_id, method_id, dim)
+    #exe_eide(0, 1, 100)
+    #eng_eide(method_id, dim)
+
+    #exe_ide(fun_id, method_id, dim)
+    #eng_ide(method_id, dim)
+
+    #exe_opp(fun_id, method_id, dim)
+    #eng_opp(method_id, dim)
+
+    #exe_de(fun_id, method_id, dim)
+    #eng_de(method_id, dim)
 
     #0,1,3,5,7,8,9,10,11,12,13,14,15,16
-    '''
-    exe_de()
-    exe_opp()
-    exe_ide()
-    exe_eide()
-    '''
+    #9
+
     #test_de(dim)
     #db_data()
     #plot_exe()

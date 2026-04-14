@@ -38,19 +38,17 @@ def calculate_opposite_pop(population: Population, is_initial_pop: bool) -> Popu
 
     return opposite_population
 
-#TODO updated param list self._function.eval, self._function, self.fun_optimum, self.fun_precision, self.parallel_processing
-def opp_based_keep_best_individuals(population: Population, parallel_proc, is_initial_pop: bool = False):
+def opp_based_keep_best_individuals(population: Population, func, parallel_proc, is_initial_pop: bool = False):
     opposite_population = calculate_opposite_pop(population, is_initial_pop)
-    opposite_population.update_fitness_values(parallel_proc)
+    opposite_population.update_fitness_values(func, parallel_proc)
 
     pops = np.concatenate((population.members, opposite_population.members))
     sorted_pops_indices = np.argsort([member.fitness_value for member in pops])
     sorted_pops = pops[sorted_pops_indices]
     population.members = sorted_pops[:population.size]
 
-#TODO updated param list self._function.eval, self._function, self.fun_optimum, self.fun_precision, self.parallel_processing
-def opp_based_generation_jumping(population: Population, jumping_rate: float, parallel_proc) -> bool:
+def opp_based_generation_jumping(population: Population, jumping_rate: float, func, parallel_proc) -> bool:
     if random() < jumping_rate:
-        opp_based_keep_best_individuals(population, parallel_proc)
+        opp_based_keep_best_individuals(population, func, parallel_proc)
         return True
     return False

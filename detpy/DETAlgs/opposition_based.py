@@ -37,9 +37,9 @@ class OppBasedDE(BaseAlg):
 
         # Apply boundary constrains on population in place
         # TODO corrected code boundary full
-        if self.boundary_constraints_fun not in (BoundaryFixing.PROJECTION_DARWINIAN,
-                                                 BoundaryFixing.REFLECTION_DARWINIAN,
-                                                 BoundaryFixing.WRAPPING_DARWINIAN):
+        if self.boundary_constraints_fun not in (BoundaryFixing.PROJECTION_DARWINIAN, BoundaryFixing.REFLECTION_DARWINIAN,
+                                                 BoundaryFixing.WRAPPING_DARWINIAN, BoundaryFixing.PENALTY_DEATH,
+                                                 BoundaryFixing.PENALTY_ADDITIVE, BoundaryFixing.PENALTY_SUBSTITUTION):
             fix_boundary_constraints_full(self._pop, v_pop, self._function.eval, self.base_vector_schema,
                                           self.optimization_type, self.y, self.mutation_factor,
                                           self.boundary_constraints_fun)
@@ -52,19 +52,18 @@ class OppBasedDE(BaseAlg):
         self.nfc += self.population_size
 
         # Methods with Darwinian repair should be used before selection
-        if self.boundary_constraints_fun in (BoundaryFixing.PROJECTION_DARWINIAN,
-                                             BoundaryFixing.REFLECTION_DARWINIAN,
-                                             BoundaryFixing.WRAPPING_DARWINIAN):
-            fix_boundary_constraints_full(self._pop, v_pop, self._function.eval, self.base_vector_schema,
+        if self.boundary_constraints_fun in (BoundaryFixing.PROJECTION_DARWINIAN, BoundaryFixing.REFLECTION_DARWINIAN,
+                                             BoundaryFixing.WRAPPING_DARWINIAN, BoundaryFixing.PENALTY_DEATH,
+                                             BoundaryFixing.PENALTY_ADDITIVE, BoundaryFixing.PENALTY_SUBSTITUTION):
+            fix_boundary_constraints_full(self._pop, u_pop, self._function.eval, self.base_vector_schema,
                                           self.optimization_type, self.y, self.mutation_factor,
                                           self.boundary_constraints_fun)
 
         # Select new population
         new_pop = selection(self._pop, u_pop)
 
-        #TODO updated param list self._function.eval, self._function, self.fun_optimum, self.fun_precision, self.parallel_processing
         # Generation jumping
-        if opp_based_generation_jumping(new_pop, self.jumping_rate, self.parallel_processing):
+        if opp_based_generation_jumping(new_pop, self.jumping_rate, self._function.eval, self.parallel_processing):
             self.nfc += self.population_size
 
         # Override data
