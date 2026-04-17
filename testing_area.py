@@ -967,7 +967,7 @@ if __name__ == "__main__":
     AUC: 
     '''
 
-    plot_ecdf(3, 5, 50, 3)
+    plot_ecdf(0, 3, 10, 1)
     #plot_ecdf(3, 5, 10, 1)
 
     #exe_eide(fun_id, method_id, dim)
