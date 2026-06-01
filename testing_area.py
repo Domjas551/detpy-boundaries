@@ -365,7 +365,7 @@ def test_de(dim=10):
     results = default2.run()
 
 def compute_ecdf(conn, alg_id, fun_id, method_id, dim, fun_opt):
-    alg = ["DE", "OPP", "IDE", "EIDE"]
+    alg = ["DE", "OppBasedDE", "IDE", "EIDE"]
     fun = ["F12014", "F22014", "F32014", "F42014", "F52014", "Belka"]
     methods = ["REINITIALIZE", "PROJECTION_LAMARCKIAN", "PROJECTION_DARWINIAN", "REFLECTION_LAMARCKIAN",
                "REFLECTION_DARWINIAN", "WRAPPING_LAMARCKIAN", "WRAPPING_DARWINIAN", "PROJECTION_MIDPOINT",
@@ -967,7 +967,7 @@ if __name__ == "__main__":
     AUC: 
     '''
 
-    plot_ecdf(0, 3, 10, 1)
+    plot_ecdf(1, 1, 100, 2)
     #plot_ecdf(3, 5, 10, 1)
 
     #exe_eide(fun_id, method_id, dim)
